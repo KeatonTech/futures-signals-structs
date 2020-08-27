@@ -2,6 +2,9 @@
 name = "futures-signals-structs"
 version = "0.1.0"
 authors = ["Keaton Brandt <keatonbrandt@gmail.com>"]
+repository = "https://github.com/KeatonTech/futures-signals-structs"
+license = "MIT"
+keywords = ["rust-signals", "derive", "proc-macro"]
 
 [dependencies]
 futures-signals-structs-traits = { path = "futures-signals-structs-traits" }

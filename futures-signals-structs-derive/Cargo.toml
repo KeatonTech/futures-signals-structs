@@ -3,6 +3,10 @@ name = "futures-signals-structs-derive"
 version = "0.1.0"
 edition = "2018"
 autotests = false
+authors = ["Keaton Brandt <keatonbrandt@gmail.com>"]
+repository = "https://github.com/KeatonTech/futures-signals-structs"
+license = "MIT"
+description = "Do not use this directly. Instead import futures-signals-structs"
 
 [lib]
 proc-macro = true

@@ -162,6 +162,60 @@ impl MutableStructField {
     }
 }
 
+/// Derives a function called `as_mutable_struct()` that returns a version of the struct
+/// where all fields are Mutable objects.
+/// ```
+///     #[derive(AsMutableStruct)]
+///     struct PlayerScore {
+///         hits: u32,
+///         multiplier: f32,
+///     }
+/// 
+///     fn main() {
+///         let score = PlayerScore {
+///             hits: 4,
+///             multiplier: 0.4,
+///         };
+///         let mutable_score = score.as_mutable_struct();
+///         mutable_score.hits.set(6);
+///         mutable_score.multiplier.set(0.5);
+///     }
+/// ```
+/// By default this creates a new struct called MutablePlayerScore that can also be
+/// constructed directly as necessary.
+/// ```
+///     let mutable_score = MutablePlayerScore {
+///         hits: Mutable::new(5),
+///         multiplier: Mutable::new(1.4),
+///     };
+/// ```
+/// Either way you construct it, the mutable object can be 'snapshotted' into the
+/// original struct.
+/// ```
+///     assert_eq!(mutable_score.snapshot(), PlayerScore {
+///         hits: 5,
+///         multiplier: 1.4,
+///     });
+/// ```
+/// The mutable value can also be updated to match a new static struct.
+/// ```
+///     mutable_score.update(PlayerScore {
+///         hits: 50,
+///         multiplier: 15,
+///     });
+///     assert_eq!(mutable_score.snapshot(), PlayerScore {
+///         hits: 50,
+///         multiplier: 15,
+///     });
+/// ```
+/// Structs can depend on other structs when annotated with #[mutable_type]
+/// ```
+///     #[derive(AsMutableStruct)]
+///     struct GameScore {
+///         #[mutable_type = "MutablePlayerScore"] player_1: PlayerScore,
+///         #[mutable_type = "MutablePlayerScore"] player_2: PlayerScore,
+///     }
+/// ```
 #[proc_macro_derive(AsMutableStruct, attributes(MutableStructName, mutable_type))]
 pub fn as_mutable_struct(input: TokenStream) -> TokenStream {
     // Parse the string representation

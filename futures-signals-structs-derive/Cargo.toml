@@ -1,6 +1,6 @@
 [package]
 name = "futures-signals-structs-derive"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2018"
 autotests = false
 authors = ["Keaton Brandt <keatonbrandt@gmail.com>"]

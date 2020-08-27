@@ -20,7 +20,7 @@ struct CustomNamedStruct {
 
 #[derive(AsMutableStruct, Debug, PartialEq, Clone)]
 struct ComposedStruct {
-    #[mutable_type = "MutablePlayerScore"] score: PlayerScore,
+    score: PlayerScore,
     events: Vec<String>,
 }
 

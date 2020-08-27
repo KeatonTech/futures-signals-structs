@@ -17,31 +17,20 @@ enum MutableStructField {
     MutableStruct {
         name: Ident,
         vis: Visibility,
-        custom_mutable_ty: Ident,
-    },
-    Vec {
-        name: Ident,
-        vis: Visibility,
-        inner_ty: Type,
+        ty: Type,
     },
 }
 
 impl From<&Field> for MutableStructField {
     fn from(field: &Field) -> MutableStructField {
-        if let Some(mutable_type_str) = MutableStructField::maybe_get_mutable_type(&field) {
-            MutableStructField::MutableStruct {
+        if MutableStructField::field_is_primitive(field) {
+            MutableStructField::Basic {
                 name: field.ident.clone().unwrap(),
                 vis: field.vis.clone(),
-                custom_mutable_ty: format_ident!("{}", mutable_type_str),
-            }
-        } else if let Some(vec_type) = MutableStructField::maybe_get_vec_type(&field) {
-            MutableStructField::Vec {
-                name: field.ident.clone().unwrap(),
-                vis: field.vis.clone(),
-                inner_ty: vec_type,
+                ty: field.ty.clone(),
             }
         } else {
-            MutableStructField::Basic {
+            MutableStructField::MutableStruct {
                 name: field.ident.clone().unwrap(),
                 vis: field.vis.clone(),
                 ty: field.ty.clone(),
@@ -60,13 +49,8 @@ impl MutableStructField {
             MutableStructField::MutableStruct {
                 vis,
                 name,
-                custom_mutable_ty,
-            } => quote!(#vis #name: #custom_mutable_ty),
-            MutableStructField::Vec {
-                vis,
-                name,
-                inner_ty,
-            } => quote!(#vis #name: futures_signals::signal_vec::MutableVec<#inner_ty>),
+                ty,
+            } => quote!(#vis #name: <#ty as futures_signals_structs_traits::AsMutableStruct>::MutableStructType),
         }
     }
 
@@ -79,9 +63,6 @@ impl MutableStructField {
             MutableStructField::MutableStruct { name, .. } => {
                 quote!(#snapshot_name.#name.as_mutable_struct())
             }
-            MutableStructField::Vec { name, .. } => {
-                quote!(futures_signals::signal_vec::MutableVec::new_with_values(#snapshot_name.#name.clone()))
-            }
         }
     }
 
@@ -90,9 +71,6 @@ impl MutableStructField {
         match self {
             MutableStructField::Basic { name, .. } => quote!(self.#name.get_cloned()),
             MutableStructField::MutableStruct { name, .. } => quote!(self.#name.snapshot()),
-            MutableStructField::Vec { name, .. } => {
-                quote!(self.#name.lock_ref().as_slice().to_vec())
-            }
         }
     }
 
@@ -103,9 +81,6 @@ impl MutableStructField {
             MutableStructField::MutableStruct { name, .. } => {
                 quote!(self.#name.update(#snapshot_name.#name))
             }
-            MutableStructField::Vec { name, .. } => {
-                quote!(self.#name.lock_mut().replace_cloned(#snapshot_name.#name))
-            }
         }
     }
 
@@ -114,51 +89,18 @@ impl MutableStructField {
         match self {
             MutableStructField::Basic { name, .. } => name,
             MutableStructField::MutableStruct { name, .. } => name,
-            MutableStructField::Vec { name, .. } => name,
         }
     }
 
     /// Returns the value of the mutable_type annotation, if specified.
-    fn maybe_get_mutable_type(input: &Field) -> Option<String> {
-        for attr in &input.attrs {
-            if !attr.path.is_ident("mutable_type") {
-                continue;
-            }
-            if let Result::Ok(parsed_meta) = attr.parse_meta() {
-                if let syn::Meta::NameValue(name_value) = parsed_meta {
-                    if let syn::Lit::Str(lit_str) = name_value.lit {
-                        return Some(lit_str.value());
-                    } else {
-                        panic!("Found a mutable_type that is not a string.")
-                    }
-                } else {
-                    panic!("Format mutable_type as #[mutable_type = \"MyMutableName\"]")
-                }
-            } else {
-                panic!("Found a malformed mutable_type. Format mutable_type as #[mutable_type = \"Name\"]");
-            }
+    fn field_is_primitive(input: &Field) -> bool {
+        if let Type::Path(type_path) = &input.ty {
+            let last_component = type_path.path.segments.last().unwrap();
+            let name = last_component.ident.to_string();
+            name.chars().nth(0).unwrap().is_ascii_lowercase()
+        } else {
+            false
         }
-        return Option::None;
-    }
-
-    /// Returns the generic type if this field is a Vec.
-    fn maybe_get_vec_type(input: &Field) -> Option<Type> {
-        if let syn::Type::Path(type_path) = &input.ty {
-            let path_end = type_path.path.segments.last().unwrap();
-            if path_end.ident == format_ident!("Vec") {
-                if let syn::PathArguments::AngleBracketed(generic) = &path_end.arguments {
-                    assert_eq!(generic.args.len(), 1);
-                    if let syn::GenericArgument::Type(generic_type) = generic.args.last().unwrap() {
-                        return Some(generic_type.clone());
-                    } else {
-                        panic!("Found a generic that is not a type");
-                    }
-                } else {
-                    panic!("Found a Vec without a generic type");
-                }
-            }
-        }
-        return None;
     }
 }
 
@@ -216,7 +158,7 @@ impl MutableStructField {
 ///         #[mutable_type = "MutablePlayerScore"] player_2: PlayerScore,
 ///     }
 /// ```
-#[proc_macro_derive(AsMutableStruct, attributes(MutableStructName, mutable_type))]
+#[proc_macro_derive(AsMutableStruct, attributes(MutableStructName))]
 pub fn as_mutable_struct(input: TokenStream) -> TokenStream {
     // Parse the string representation
     let ast: ItemStruct = syn::parse_macro_input!(input);

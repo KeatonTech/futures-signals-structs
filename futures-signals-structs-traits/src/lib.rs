@@ -1,3 +1,5 @@
+pub mod vec;
+
 pub trait MutableStruct {
     type SnapshotType;
 

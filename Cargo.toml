@@ -1,6 +1,6 @@
 [package]
 name = "futures-signals-structs"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Keaton Brandt <keatonbrandt@gmail.com>"]
 repository = "https://github.com/KeatonTech/futures-signals-structs"
 license = "MIT"
@@ -8,8 +8,8 @@ keywords = ["rust-signals", "derive", "proc-macro"]
 description = "Derives mutable versions of structs for the futures-signals crate."
 
 [dependencies]
-futures-signals-structs-traits = { version = "0.1.0", path = "futures-signals-structs-traits" }
-futures-signals-structs-derive = { version = "0.1.0", path = "futures-signals-structs-derive" }
+futures-signals-structs-traits = { version = "0.2.0", path = "futures-signals-structs-traits" }
+futures-signals-structs-derive = { version = "0.2.0", path = "futures-signals-structs-derive" }
 futures-signals = "0.3.15"
 
 [workspace]
